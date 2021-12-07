@@ -348,3 +348,6 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+/src/lnd_invoice.Console/appsettings_local.json
+/src/lnd_invoice.Blazor/appsettings_local.json
+/src/lnd_invoice.Blazor/appsettings.Development.json

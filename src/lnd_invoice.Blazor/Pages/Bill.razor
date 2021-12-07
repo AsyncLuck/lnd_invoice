@@ -1,0 +1,233 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.WebUtilities
+@using QRCoder
+@using lnd_invoice.Blazor.UIService
+@using lnd_invoice.Service
+@using Microsoft.JSInterop
+
+@inject NavigationManager UriHelper
+@inject LndService LndService
+@inject CoingeckoRatesService RateService
+@inject IJSRuntime JS
+@inject CopyToClipBoardService ClipboardService
+@inject QueryParamService QueryParamService
+
+<PageTitle>Lightning invoice</PageTitle>
+@if (invoice != null)
+{
+    @if (invoice.payment_request != null && queryParam != null)
+    {
+        <div class="fst-italic fw-light mt-3 text-end bg-secondary bg-gradient text-white p-2">
+            Pay with lightning for @queryParam.ShopName
+        </div>
+        <div class="card">
+            @*--Waiting paymemt---*@
+            @if (isPaid == "false")
+            {
+                <div class="qrcode mt-3">
+                    <div class="qrcode_show">
+                        <img src="/img/bitcoin-lightning.svg" class="qr_currency_icon">
+                        @((MarkupString)qrBill)
+                    </div>
+                </div>
+                <div class="text-center card-body">
+                    <p class="text-center text-uppercase fw-bold">@queryParam.Currency.ToUpper() @queryParam.Amount</p>
+                    <p class="mt-1 text-center">Sats: @satsAmt - BTC: @btcAmt </p>
+                    <p class="mt-2">Payment request:</p>
+                    <p class="card-text fst-italic fw-light font-mini bg-light">@invoice.payment_request</p>
+                    <button class="btn btn-primary mt-3" @onclick="CopyToClipboard" disabled=@state.IsDisabled>
+                        <i class="@state.ClassName"></i> @state.Text
+                    </button>
+                </div>
+            }
+            else
+            {
+                @*--Paid---*@
+                @if (isPaid == "true")
+                {
+                    <div class="qrcode mt-3">
+                        <div class="qrcode_show">
+                            <svg version="1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" enable-background="new 0 0 48 48">
+                                <circle fill="#4CAF50" cx="24" cy="24" r="21" />
+                                <polygon fill="#FFFFFF" points="34.6,14.6 21,28.2 15.4,22.6 12.6,25.4 21,33.8 37.4,17.4" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="card-body text-center">
+                        <p class="text-center text-uppercase fw-bold">Payment received, thanks !</p>
+                        <p class="mt-1 text-center">Sats: @satsAmt - BTC: @btcAmt </p>
+                        <p class="mt-2">Payment request:</p>
+                        <p class=" fst-italic fw-light font-mini bg-light">@invoice.payment_request</p>
+                        <p class="card-text fst-italic fw-light fw-bold mt-4">You will be redirect on your favorite shop very soon...</p>
+                    </div>
+                }
+                else
+                {
+                    @*--Expired---*@
+                    <div class="qrcode mt-3">
+                        <div class="qrcode_show">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient gradientTransform="matrix(1.31117 0 0 1.30239 737.39 159.91)" gradientUnits="userSpaceOnUse" id="0" y2="-.599" x2="0" y1="45.47"><stop stop-color="#ffc515" /><stop offset="1" stop-color="#ffd55b" /></linearGradient></defs><g transform="matrix(.85714 0 0 .85714-627.02-130.8)"><path d="m797.94 212.01l-25.607-48c-.736-1.333-2.068-2.074-3.551-2.074-1.483 0-2.822.889-3.569 2.222l-25.417 48c-.598 1.185-.605 2.815.132 4 .737 1.185 1.921 1.778 3.404 1.778h51.02c1.483 0 2.821-.741 3.42-1.926.747-1.185.753-2.667.165-4" fill="url(#0)" /><path d="m-26.309 18.07c-1.18 0-2.135.968-2.135 2.129v12.82c0 1.176.948 2.129 2.135 2.129 1.183 0 2.135-.968 2.135-2.129v-12.82c0-1.176-.946-2.129-2.135-2.129zm0 21.348c-1.18 0-2.135.954-2.135 2.135 0 1.18.954 2.135 2.135 2.135 1.181 0 2.135-.954 2.135-2.135 0-1.18-.952-2.135-2.135-2.135z" transform="matrix(1.05196 0 0 1.05196 796.53 161.87)" fill="#000" stroke="#40330d" fill-opacity=".75" /></g></svg>
+                        </div>
+                    </div>
+                    <div class="card-body text-center">
+                        <p class="text-center text-uppercase fw-bold">Payment expired... (360sec)</p>
+                        <p class="mt-1 text-center">Sats: @satsAmt - BTC: @btcAmt </p>
+                        <p class="mt-2">Payment request:</p>
+                        <p class="fst-italic fw-light font-mini bg-light">@invoice.payment_request</p>
+                        <p class="card-text fst-italic fw-light fw-bold mt-4">You will be redirect on your favorite shop very soon...</p>
+                    </div>
+                }
+            }
+        </div>
+    }
+    else
+    {
+        <div class="fst-italic fw-light mt-3 text-end bg-secondary bg-gradient text-white p-2">
+            Pay with lightning
+        </div>
+        <div class="text-center">
+            <p class="mt-4 text-wrap"><em>Cannot generate an invoice, pls go back to your favorite shop and choose and other payment method...</em></p>
+        </div>
+    }
+
+}
+else
+{
+    <div class="fst-italic fw-light mt-3 text-end bg-secondary bg-gradient text-white p-2">
+        Pay with lightning
+    </div>
+    <div class="text-center">
+        <div class="lds-spinner mt-3"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+        <p class="mt-4 text-wrap"><em>BTC Lightning invoice, please wait (30sec)...</em></p>
+    </div>
+}
+
+@code {
+    private InvoiceResponse? invoice = null;
+    private string qrBill = "";
+    private State state = new("Copy", "oi oi-clipboard");
+    private string satsAmt = "0";
+    private string btcAmt = "0";
+    private QueryParam? queryParam;
+    private string isPaid = "false"; //Can be True, false or expired
+
+
+    /// <summary>
+    /// Generate QR code after the first init of the blazor page
+    /// </summary>
+    /// <param name="firstRender"></param>
+    /// <returns></returns>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                queryParam = ReadParamFromUrl();
+
+                if (queryParam != null)
+                {
+                    //Rate
+                    var priceInBitcoin = await RateService.GetBitcoinPrice(queryParam.Currency, queryParam.Amount);
+                    satsAmt = priceInBitcoin.PriceInSats.ToString();
+                    
+                    //To test without param in query string
+                    //satsAmt = "2";
+                    
+                    btcAmt = priceInBitcoin.PriceInBtc.ToString();
+
+                    //Invoice
+                    invoice = await LndService.CreateInvoice(queryParam.Description, satsAmt, queryParam.InvoiceExpiryInSecond);
+                    var qrGenerator = new QRCodeGenerator();
+                    QRCodeData qrCodeData = qrGenerator.CreateQrCode(invoice.payment_request, QRCodeGenerator.ECCLevel.Q);
+                    SvgQRCode qrCode = new SvgQRCode(qrCodeData);
+                    qrBill = qrCode.GetGraphic(new System.Drawing.Size(256, 256), "#000", "#f5f5f7", true, SvgQRCode.SizingMode.ViewBoxAttribute);
+
+                    StateHasChanged();
+
+                    CheckIfPaid();
+                }
+                else
+                    invoice = new InvoiceResponse();
+            }
+            catch
+            {
+                invoice = new InvoiceResponse();
+            }
+        }
+    }
+
+
+    // <summary>
+    /// Read param from encoded URL
+    /// </summary>
+    /// <returns></returns>
+    private QueryParam? ReadParamFromUrl()
+    {
+        //var uri = UriHelper.ToAbsoluteUri(UriHelper.Uri);
+        //var paramQuery = string.Empty;
+
+        //if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("param", out var param))
+        //{
+        //    paramQuery = param.First();
+        //    return QueryParamService.DecodeQueryParam(paramQuery);
+        //}
+        //else
+        //    return null;
+
+        // To test without param in query string
+        return new QueryParam() { Amount = "100", Currency = "usd", Description = "Test", InvoiceExpiryInSecond = "45", ShopName = "Shop test" };
+    }
+
+    /// <summary>
+    /// Check if paid and change
+    /// </summary>
+    private async void CheckIfPaid()
+    {
+        if (invoice != null && invoice.r_hash != null && queryParam != null)
+        {
+            DateTime expiryTime = DateTime.UtcNow.AddSeconds(double.Parse(queryParam.InvoiceExpiryInSecond)).AddSeconds(-30);
+
+            isPaid = "false";
+
+            while (expiryTime - DateTime.UtcNow > TimeSpan.FromSeconds(0))
+            {
+                Thread.Sleep(2000);
+                var invoiceLookup = await LndService.IsPaid(invoice.r_hash);
+                if (invoiceLookup.settled)
+                {
+                    isPaid = "true";
+                    break;
+                }
+            }
+
+            if (isPaid == "false")
+            {
+                isPaid = "expired";
+            }
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Copy to clipboard button click
+    /// </summary>
+    /// <returns></returns>
+    private async Task CopyToClipboard()
+    {
+        CancellationTokenSource cts = new();
+        var temp = state;
+        state = new("Copied", "oi oi-check", IsDisabled: true);
+        await ClipboardService.WriteTextAsync(invoice == null ? "" : invoice.payment_request ?? "");
+        await Task.Delay(TimeSpan.FromSeconds(2), cts.Token);
+        state = temp;
+    }
+
+    /// <summary>
+    /// Keep state for the copy to clipboard button
+    /// </summary>
+    /// <param name="Text">Inner test</param>
+    /// <param name="ClassName">CSS class name</param>
+    /// <param name="IsDisabled">Is disabled</param>
+    private record State(string Text, string ClassName, bool IsDisabled = false);
+    }
