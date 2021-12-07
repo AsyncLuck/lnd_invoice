@@ -164,19 +164,19 @@ else
     /// <returns></returns>
     private QueryParam? ReadParamFromUrl()
     {
-        //var uri = UriHelper.ToAbsoluteUri(UriHelper.Uri);
-        //var paramQuery = string.Empty;
+        var uri = UriHelper.ToAbsoluteUri(UriHelper.Uri);
+        var paramQuery = string.Empty;
 
-        //if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("param", out var param))
-        //{
-        //    paramQuery = param.First();
-        //    return QueryParamService.DecodeQueryParam(paramQuery);
-        //}
-        //else
-        //    return null;
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("param", out var param))
+        {
+            paramQuery = param.First();
+            return QueryParamService.DecodeQueryParam(paramQuery);
+        }
+        else
+            return null;
 
         // To test without param in query string
-        return new QueryParam() { Amount = "100", Currency = "usd", Description = "Test", InvoiceExpiryInSecond = "45", ShopName = "Shop test" };
+        //return new QueryParam() { Amount = "100", Currency = "usd", Description = "Test", InvoiceExpiryInSecond = "45", ShopName = "Shop test" };
     }
 
     /// <summary>
