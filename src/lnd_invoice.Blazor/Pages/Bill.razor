@@ -1,4 +1,5 @@
 ﻿@page "/"
+@using Microsoft.AspNetCore.Mvc
 @using Microsoft.AspNetCore.WebUtilities
 @using QRCoder
 @using lnd_invoice.Blazor.UIService
@@ -11,6 +12,7 @@
 @inject IJSRuntime JS
 @inject CopyToClipBoardService ClipboardService
 @inject QueryParamService QueryParamService
+
 
 <PageTitle>Lightning invoice</PageTitle>
 @if (invoice != null)
@@ -164,19 +166,19 @@ else
     /// <returns></returns>
     private QueryParam? ReadParamFromUrl()
     {
-        var uri = UriHelper.ToAbsoluteUri(UriHelper.Uri);
-        var paramQuery = string.Empty;
+        //var uri = UriHelper.ToAbsoluteUri(UriHelper.Uri);
+        //var paramQuery = string.Empty;
 
-        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("param", out var param))
-        {
-            paramQuery = param.First();
-            return QueryParamService.DecodeQueryParam(paramQuery);
-        }
-        else
-            return null;
+        //if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("param", out var param))
+        //{
+        //    paramQuery = param.First();
+        //    return QueryParamService.DecodeQueryParam(paramQuery);
+        //}
+        //else
+        //    return null;
 
         // To test without param in query string
-        //return new QueryParam() { Amount = "100", Currency = "usd", Description = "Test", InvoiceExpiryInSecond = "45", ShopName = "Shop test" };
+        return new QueryParam() { Amount = "100", Currency = "usd", Description = "Test", InvoiceExpiryInSecond = "360", ShopName = "Shop test" };
     }
 
     /// <summary>
