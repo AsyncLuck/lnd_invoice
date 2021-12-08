@@ -1,24 +1,27 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.WebUtilities
 @using QRCoder
+@using System.Text.Json
 @using lnd_invoice.Blazor.UIService
 @using lnd_invoice.Service
 @using Microsoft.JSInterop
+@using System.Net.Http;
 
 @inject NavigationManager UriHelper
-@inject LndService LndService
-@inject CoingeckoRatesService RateService
+@*@inject LndService LndService
+    @inject CoingeckoRatesService RateService*@
 @inject IJSRuntime JS
 @inject CopyToClipBoardService ClipboardService
-@inject QueryParamService QueryParamService
+@inject IHttpClientFactory _httpClientFactory
+@*@inject QueryParamService QueryParamService*@
 
 <PageTitle>Lightning invoice</PageTitle>
 @if (invoice != null)
 {
-    @if (invoice.payment_request != null && queryParam != null)
+    @if (invoice.payment_request != null && queryParam != null && invoiceDesc != null)
     {
         <div class="fst-italic fw-light mt-3 text-end bg-secondary bg-gradient text-white p-2">
-            Pay with lightning for @queryParam.ShopName
+            Pay with lightning for @invoiceDesc.ShopName
         </div>
         <div class="card">
             @*--Waiting paymemt---*@
@@ -31,7 +34,7 @@
                     </div>
                 </div>
                 <div class="text-center card-body">
-                    <p class="text-center text-uppercase fw-bold">@queryParam.Currency.ToUpper() @queryParam.Amount</p>
+                    <p class="text-center text-uppercase fw-bold">@invoiceDesc.Currency.ToUpper() @invoiceDesc.Amount</p>
                     <p class="mt-1 text-center">Sats: @satsAmt - BTC: @btcAmt </p>
                     <p class="mt-2">Payment request:</p>
                     <p class="card-text fst-italic fw-light font-mini bg-light">@invoice.payment_request</p>
@@ -103,13 +106,14 @@ else
 }
 
 @code {
-    private InvoiceResponse? invoice = null;
+    private InvoiceLookupResult? invoice = null;
     private string qrBill = "";
     private State state = new("Copy", "oi oi-clipboard");
     private string satsAmt = "0";
     private string btcAmt = "0";
-    private QueryParam? queryParam;
+    private string? queryParam;
     private string isPaid = "false"; //Can be True, false or expired
+    private InvoiceDescriptionInfo? invoiceDesc;
 
 
     /// <summary>
@@ -127,32 +131,33 @@ else
 
                 if (queryParam != null)
                 {
-                    //Rate
-                    var priceInBitcoin = await RateService.GetBitcoinPrice(queryParam.Currency, queryParam.Amount);
-                    satsAmt = priceInBitcoin.PriceInSats.ToString();
-                    
-                    //To test without param in query string
-                    //satsAmt = "2";
-                    
-                    btcAmt = priceInBitcoin.PriceInBtc.ToString();
+                    invoice = await GetInvoiceInfo(queryParam, null);
+                    if (invoice != null)
+                    {
+                        invoiceDesc = GetDescriptionInfo(invoice.memo);
 
-                    //Invoice
-                    invoice = await LndService.CreateInvoice(queryParam.Description, satsAmt, queryParam.InvoiceExpiryInSecond);
-                    var qrGenerator = new QRCodeGenerator();
-                    QRCodeData qrCodeData = qrGenerator.CreateQrCode(invoice.payment_request, QRCodeGenerator.ECCLevel.Q);
-                    SvgQRCode qrCode = new SvgQRCode(qrCodeData);
-                    qrBill = qrCode.GetGraphic(new System.Drawing.Size(256, 256), "#000", "#f5f5f7", true, SvgQRCode.SizingMode.ViewBoxAttribute);
+                        satsAmt = invoice.value == null ? "0" : invoice.value.ToString();
+                        btcAmt = invoice.value == null ? "0" : (decimal.Parse(invoice.value) / 100000000).ToString();
 
-                    StateHasChanged();
+                        //Invoice QR
+                        var qrGenerator = new QRCodeGenerator();
+                        QRCodeData qrCodeData = qrGenerator.CreateQrCode(invoice.payment_request, QRCodeGenerator.ECCLevel.Q);
+                        SvgQRCode qrCode = new SvgQRCode(qrCodeData);
+                        qrBill = qrCode.GetGraphic(new System.Drawing.Size(256, 256), "#000", "#f5f5f7", true, SvgQRCode.SizingMode.ViewBoxAttribute);
 
-                    CheckIfPaid();
+                        StateHasChanged();
+
+                        CheckIfPaid();
+                    }
+                    else
+                        throw new ArgumentException("Bad param (r_hash)");
                 }
                 else
-                    invoice = new InvoiceResponse();
+                    invoice = new InvoiceLookupResult();
             }
             catch
             {
-                invoice = new InvoiceResponse();
+                invoice = new InvoiceLookupResult();
             }
         }
     }
@@ -162,21 +167,17 @@ else
     /// Read param from encoded URL
     /// </summary>
     /// <returns></returns>
-    private QueryParam? ReadParamFromUrl()
+    private string? ReadParamFromUrl()
     {
         var uri = UriHelper.ToAbsoluteUri(UriHelper.Uri);
         var paramQuery = string.Empty;
 
-        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("param", out var param))
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("r_hash_str", out var param))
         {
-            paramQuery = param.First();
-            return QueryParamService.DecodeQueryParam(paramQuery);
+            return param.First();
         }
         else
             return null;
-
-        // To test without param in query string
-        //return new QueryParam() { Amount = "100", Currency = "usd", Description = "Test", InvoiceExpiryInSecond = "45", ShopName = "Shop test" };
     }
 
     /// <summary>
@@ -184,16 +185,16 @@ else
     /// </summary>
     private async void CheckIfPaid()
     {
-        if (invoice != null && invoice.r_hash != null && queryParam != null)
+        if (invoice != null && invoice.r_hash != null && queryParam != null && invoice.expiry != null)
         {
-            DateTime expiryTime = DateTime.UtcNow.AddSeconds(double.Parse(queryParam.InvoiceExpiryInSecond)).AddSeconds(-30);
+            DateTime expiryTime = DateTime.UtcNow.AddSeconds(double.Parse(invoice.expiry)).AddSeconds(-30);
 
             isPaid = "false";
 
             while (expiryTime - DateTime.UtcNow > TimeSpan.FromSeconds(0))
             {
                 Thread.Sleep(2000);
-                var invoiceLookup = await LndService.IsPaid(invoice.r_hash);
+                var invoiceLookup = await GetInvoiceInfo(null, invoice.r_hash);
                 if (invoiceLookup.settled)
                 {
                     isPaid = "true";
@@ -207,6 +208,57 @@ else
             }
             StateHasChanged();
         }
+    }
+
+    /// <summary>
+    ///
+    /// </summary>
+    /// <param name="r_has_str"></param>
+    /// <returns></returns>
+    private async Task<InvoiceLookupResult> GetInvoiceInfo(string? r_hash_str, byte[]? r_hash)
+    {
+        if (_httpClientFactory != null)
+        {
+            var httpClient = _httpClientFactory.CreateClient("invoice_api");
+
+            //Request
+            var urlBuilder = new System.Text.StringBuilder();
+            urlBuilder.Append("invoices/{r_hash_str}");
+            if (r_hash_str != null)
+                urlBuilder.Replace("{r_hash_str}", System.Uri.EscapeDataString(System.Convert.ToString(r_hash_str, System.Globalization.CultureInfo.InvariantCulture)));
+            else
+            {
+                if (r_hash == null)
+                    throw new ArgumentNullException("no valid r_hash or r_hash_str provided");
+                else
+                    urlBuilder.Replace("{r_hash_str}", System.Uri.EscapeDataString(System.Convert.ToString(Convert.ToHexString(r_hash), System.Globalization.CultureInfo.InvariantCulture)));
+            }
+
+            var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, urlBuilder.ToString());
+
+            //Response
+            var httpResponseMessage = await httpClient.SendAsync(httpRequestMessage);
+
+            if (httpResponseMessage.IsSuccessStatusCode)
+            {
+                using var contentStream =
+                    await httpResponseMessage.Content.ReadAsStreamAsync();
+
+                var respObj = await JsonSerializer.DeserializeAsync
+                   <InvoiceLookupResult>(contentStream);
+
+                if (respObj != null)
+                {
+                    return respObj;
+                }
+                else
+                    throw new HttpRequestException("Invoice api returned an empty response");
+            }
+            else
+                throw new HttpRequestException("Bad response status code from invoice api: " + httpResponseMessage.StatusCode);
+        }
+        else
+            throw new HttpRequestException("Bad HttpClient Init");
     }
 
     /// <summary>
@@ -230,4 +282,32 @@ else
     /// <param name="ClassName">CSS class name</param>
     /// <param name="IsDisabled">Is disabled</param>
     private record State(string Text, string ClassName, bool IsDisabled = false);
+
+
+    /// <summary>
+    /// Split the memo field to retrieve bill information
+    /// </summary>
+    /// <param name="description"></param>
+    /// <returns></returns>
+    private InvoiceDescriptionInfo? GetDescriptionInfo(string? description)
+    {
+        if (description == null)
+            return null;
+        else
+        {
+            try
+            {
+                var split = description.Split(":");
+                return new InvoiceDescriptionInfo(split[4], split[3], split[0]);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+    }
+    /// <summary>
+    /// Invoice info from LND invoice
+    /// </summary>
+    private record InvoiceDescriptionInfo(string Amount, string Currency, string ShopName);
     }

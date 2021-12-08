@@ -6,11 +6,14 @@ using System.Threading.Tasks;
 
 namespace lnd_invoice.Service
 {
-    internal class InvoiceRequest
+    public class InvoiceRequest
     {
-        public string memo { get; set; } = string.Empty;
-        public string value { get; set; } = string.Empty;
-        public string expiry { get; set; } = string.Empty;
-    }
-}
+        public string ShopName { get; set; } = string.Empty;
 
+        public string Currency { get; set; } = string.Empty;
+        public decimal Amount { get; set; } = 0;
+        public string Description { get; set; } = string.Empty;
+        public string InvoiceIdentifier { get; set; } = string.Empty ;
+        public int ExpiryInSec { get; set; } = 0;
+    };
+}

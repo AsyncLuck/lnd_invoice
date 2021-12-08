@@ -9,6 +9,7 @@ namespace lnd_invoice.Service
     public class InvoiceResponse
     {
         public byte[]? r_hash { get; set; }
+        public string? r_hash_str { get; set; }
         public string? payment_request { get; set; }
         public string? add_index { get; set; }
         public byte[]? payment_addr { get; set; }

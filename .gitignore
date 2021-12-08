@@ -351,3 +351,4 @@ MigrationBackup/
 /src/lnd_invoice.Console/appsettings_local.json
 /src/lnd_invoice.Blazor/appsettings_local.json
 /src/lnd_invoice.Blazor/appsettings.Development.json
+/src/lnd_invoice.Api/appsettings.Development.json

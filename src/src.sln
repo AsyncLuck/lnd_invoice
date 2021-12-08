@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "lnd_invoice.Console", "lnd_
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "lnd_invoice.Blazor", "lnd_invoice.Blazor\lnd_invoice.Blazor.csproj", "{7303013E-CFE9-4D90-A27D-F62B895A39FD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "lnd_invoice.Api", "lnd_invoice.Api\lnd_invoice.Api.csproj", "{D93656B4-DEBE-42F9-ADE8-B3AC04E078FE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{7303013E-CFE9-4D90-A27D-F62B895A39FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7303013E-CFE9-4D90-A27D-F62B895A39FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7303013E-CFE9-4D90-A27D-F62B895A39FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D93656B4-DEBE-42F9-ADE8-B3AC04E078FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D93656B4-DEBE-42F9-ADE8-B3AC04E078FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D93656B4-DEBE-42F9-ADE8-B3AC04E078FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D93656B4-DEBE-42F9-ADE8-B3AC04E078FE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
