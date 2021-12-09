@@ -1,9 +1,11 @@
 
-# LND Invoice .net 6 minimal API / Blazor server-side frontend / Prestashop payment module
+# LND Invoice with .net 6 minimal API / Blazor server-side frontend / Prestashop payment module
 
 ## Goal
 
-Declare your LND node REST API on Tor and link it to your Prestashop. (No database, simple lnd invoice generator connected to your prestashop from your personnal node).
+Declare your LND node REST API on Tor and link it to your Prestashop.  
+
+(No database, simple lnd invoice generator connected to your prestashop from your personnal node)
 
 ## How
 
@@ -15,7 +17,7 @@ One Visual Studio solution that contains:
 
 Outside of the Visual Studio solution:
 
-* Prestashop module => connect to minimal api and the Blazor frontend (allow Lightning payment on your shop)
+* Prestashop module => connect to minimal api and the Blazor frontend (allow Lightning payments on your shop)
 
 ## Security
 
