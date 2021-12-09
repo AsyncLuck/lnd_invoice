@@ -1,36 +1,62 @@
-# LND Invoice with Blazor
-Very minimal implementation of a LND invoice generator with Net 6 Blazor with a Tor connection to your personnal LND node.
 
-Go in the Blazor project to modify the appsettings.json, put your connection info and your are set to test.
+# LND Invoice .net 6 minimal API / Blazor server-side frontend / Prestashop payment module
 
-On your LND node, you need to declare the REST APi as a Tor Hidden Service
+## Goal
 
-From your remote computer or VPS, you need to have Tor or Tor Browser up and running and specify your socks5 proxy port in the config.
+Declare your LND node REST API on Tor and link it to your Prestashop. (No database, simple lnd invoice generator connected to your prestashop from your personnal node).
 
-Don't forget your macaroon too. You can extract it from your LND node like this :
+## How
 
+One Visual Studio solution that contains:
+
+* .net 6 minimal api => connection to your LND Node and gateway for the requests to your LND node REST API
+* .net 6 Blazor server-side front end => invoice generation
+* .net 6 Service library => used in Blazor and the minimal API
+
+Outside of the Visual Studio solution:
+
+* Prestashop module => connect to minimal api and the Blazor frontend (allow Lightning payment on your shop)
+
+## Security
+
+* Do not use if you don't know what you are doing.
+* Don't expose the minimal .net 6 API, use it on your Prestashop (server / VPS) without any access from outside.
+* Blazor server-side don't like POST request => some token to communicate with Prestashop are sent via QueryString (tripleDES).
+
+## Config
+
+### Preparation
+
+* Expose your LND REST API on Tor Hidden Service (see Raspibolt github maybe)
+* Extract your LND invoice macaroon
+
+Macroon extraction:
 ```xxd -ps -u -c 1000 /path-to-lnd/data/chain/bitcoin/mainnet/invoice.macaroon```
 
-Config
-``` 
+### Minimal .net 6 api
+
+```json
   "LndConnectionSettings": {
     "OnionAddress": "https://youronionhere.onion",
     "LndRestApiPort": "8080",
     "TorSocks5Proxy": "127.0.0.1",
     "TorSocks5ProxyPort": "9150",
-    "InvoiceLndMacaroon": "your Lnd invoice macaroon str here",
-    "BlazorSecurityKey": "yourblazorsecuritykeyforparam"
+    "InvoiceLndMacaroon": "your Lnd invoice macaroon str here"
   }
 ```
 
-The BlazorSecurity key is the Triple DES password you will use to encrypt your query string
-```https://yourblazorinvoiceurl?param=yourencryptedparamforinvoicegeneration```
+### Blazor server side
+
+```json
+  "ApiConnectionSettings": {
+    "LndInvoiceApiAdress": "https://localhost:7030/",
+    "SecretKey": "your prestashop module secret key"
+  }
 
 ```
-Url param decode like this
-var flatString = TripleDESDecrypt(System.Convert.ToString(Uri.UnescapeDataString(param), System.Globalization.CultureInfo.InvariantCulture));
-var split = flatString.Split('-');
-return new QueryParam() { ShopName = split[0], Currency = split[1], Amount = split[2], Description = split[3] + " " + split[4], InvoiceExpiryInSecond = split[5] };
-```
 
+### Prestashop
 
+Install the module and configure it to match the configuration you need (Secret key, urls of Blazor and minimal APi)
+
+![prestaconfig.jpg](prestaconfig.jpg)
