@@ -27,7 +27,7 @@ namespace lnd_invoice.Service
                 var httpClient = _httpClientFactory.CreateClient("Lnd_Tor");
 
                 //Request 
-                var invoice = new InvoiceRequest() { memo = description, value = amt, expiry = expiryInSecond };
+                var invoice = new LndInvoiceRequest() { memo = description, value = amt, expiry = expiryInSecond };
                 var httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, "v1/invoices")
                 {
                     Content = new StringContent(JsonSerializer.Serialize(invoice), Encoding.UTF8, "application/json")
@@ -45,7 +45,11 @@ namespace lnd_invoice.Service
                        <InvoiceResponse>(contentStream);
 
                     if (respObj != null)
+                    {
+
+                        respObj.r_hash_str = respObj.r_hash == null ? "" : System.Convert.ToString(Convert.ToHexString(respObj.r_hash), System.Globalization.CultureInfo.InvariantCulture);
                         return respObj;
+                    }
                     else
                         throw new HttpRequestException("Lnd returned an empty response");
                 }
@@ -57,9 +61,9 @@ namespace lnd_invoice.Service
         }
 
         /// <summary>
-        /// Check if LND invoice is paid
+        /// Check if LND invoice is paid (you can choose to pass str or byte[]
         /// </summary>
-        public async Task<InvoiceLookupResult> IsPaid(byte[] invoiceRHash)
+        public async Task<InvoiceLookupResult> GetInvoice(string? invoiceRHash_str, byte[]? invoiceRHash)
         {
             if (_httpClientFactory != null)
             {
@@ -68,7 +72,16 @@ namespace lnd_invoice.Service
                 //Request
                 var urlBuilder = new System.Text.StringBuilder();
                 urlBuilder.Append("v1/invoice/{r_hash_str}?");
-                urlBuilder.Replace("{r_hash_str}", System.Uri.EscapeDataString(System.Convert.ToString(Convert.ToHexString(invoiceRHash), System.Globalization.CultureInfo.InvariantCulture)));
+
+                if (invoiceRHash_str != null)
+                    urlBuilder.Replace("{r_hash_str}", invoiceRHash_str);
+                else
+                {
+                    if (invoiceRHash == null)
+                        throw new ArgumentNullException(nameof(invoiceRHash));
+                    else
+                        urlBuilder.Replace("{r_hash_str}", System.Uri.EscapeDataString(System.Convert.ToString(Convert.ToHexString(invoiceRHash), System.Globalization.CultureInfo.InvariantCulture)));
+                }
 
                 var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, urlBuilder.ToString());
 
@@ -83,10 +96,7 @@ namespace lnd_invoice.Service
                     InvoiceLookupResult? respObj = await JsonSerializer.DeserializeAsync
                        <InvoiceLookupResult>(contentStream);
 
-                    if (respObj != null)
-                        return respObj;
-                    else
-                        throw new HttpRequestException("Lnd returned an empty response");
+                    return respObj ?? throw new HttpRequestException("Lnd returned an empty response");
                 }
                 else
                     throw new HttpRequestException("Bad response status code from Lnd api: " + httpResponseMessage.StatusCode);

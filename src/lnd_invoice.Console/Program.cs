@@ -34,7 +34,7 @@ try
     {
         for (int i = 0; i < 300; i++)
         {
-            var invoiceLookup = await lndService.IsPaid(invoice.r_hash);
+            var invoiceLookup = await lndService.GetInvoice(null,invoice.r_hash);
             Console.WriteLine("Is paid : " + invoiceLookup.settled.ToString() + "\n");
             if (invoiceLookup.settled)
             {

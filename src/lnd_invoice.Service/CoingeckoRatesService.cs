@@ -18,7 +18,7 @@ namespace lnd_invoice.Service
         /// <summary>
         /// Create a LND invoice
         /// </summary>
-        public async Task<BitcoinPrice> GetBitcoinPrice(string currency, string amount)
+        public async Task<BitcoinPrice> GetBitcoinPrice(string currency, decimal amount)
         {
             if (_httpClientFactory != null)
             {
@@ -47,11 +47,10 @@ namespace lnd_invoice.Service
                         try
                         {
                             decimal rate = ((decimal)(respObj.bitcoin?.GetType().GetProperty(currency)?.GetValue(respObj.bitcoin, null) ?? 0));
-                            decimal amountDec = decimal.Parse(amount);
 
                             if (rate != 0)
                             {
-                                var roundedSats = Math.Round(amountDec / rate * 100000000,MidpointRounding.AwayFromZero);
+                                var roundedSats = Math.Round(amount / rate * 100000000,MidpointRounding.AwayFromZero);
                                 var bitcoinPrice = new BitcoinPrice() { BitcoinRate = rate, PriceInBtc = roundedSats / 100000000, PriceInSats = roundedSats };
 
                                 return bitcoinPrice;

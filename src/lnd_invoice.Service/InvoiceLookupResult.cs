@@ -13,5 +13,9 @@ namespace lnd_invoice.Service
         public bool settled { get; set; }
         public string? creation_date { get; set; }
         public string? settle_date { get; set; }
+        public string? memo { get; set; }
+        public byte[]? r_hash { get; set; }  
+        public string? expiry { get; set; }
+        public string? payment_request { get; set; }    
     }
 }
