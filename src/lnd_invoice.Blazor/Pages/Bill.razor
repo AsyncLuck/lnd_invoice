@@ -8,17 +8,17 @@
 @using System.Net.Http;
 
 @inject NavigationManager UriHelper
-@*@inject LndService LndService
-    @inject CoingeckoRatesService RateService*@
 @inject IJSRuntime JS
 @inject CopyToClipBoardService ClipboardService
+@inject DecryptService decryptService
 @inject IHttpClientFactory _httpClientFactory
-@*@inject QueryParamService QueryParamService*@
+@inject NavigationManager navManager
+
 
 <PageTitle>Lightning invoice</PageTitle>
 @if (invoice != null)
 {
-    @if (invoice.payment_request != null && queryParam != null && invoiceDesc != null)
+    @if (invoice.payment_request != null && invoice.r_hash != null && invoiceDesc != null)
     {
         <div class="fst-italic fw-light mt-3 text-end bg-secondary bg-gradient text-white p-2">
             Pay with lightning for @invoiceDesc.ShopName
@@ -61,8 +61,9 @@
                         <p class="mt-1 text-center">Sats: @satsAmt - BTC: @btcAmt </p>
                         <p class="mt-2">Payment request:</p>
                         <p class=" fst-italic fw-light font-mini bg-light">@invoice.payment_request</p>
-                        <p class="card-text fst-italic fw-light fw-bold mt-4">You will be redirect on your favorite shop very soon...</p>
+                        <p class="card-text fst-italic fw-light fw-bold mt-4 text-danger">You will be redirect on your favorite shop very soon... pls wait..</p>
                     </div>
+
                 }
                 else
                 {
@@ -77,7 +78,7 @@
                         <p class="mt-1 text-center">Sats: @satsAmt - BTC: @btcAmt </p>
                         <p class="mt-2">Payment request:</p>
                         <p class="fst-italic fw-light font-mini bg-light">@invoice.payment_request</p>
-                        <p class="card-text fst-italic fw-light fw-bold mt-4">You will be redirect on your favorite shop very soon...</p>
+                        <p class="card-text fst-italic fw-light fw-bold mt-4 text-danger">You will be redirect on your favorite shop very soon... pls wait... </p>
                     </div>
                 }
             }
@@ -107,13 +108,14 @@ else
 
 @code {
     private InvoiceLookupResult? invoice = null;
-    private string qrBill = "";
+    private string qrBill = string.Empty;
     private State state = new("Copy", "oi oi-clipboard");
     private string satsAmt = "0";
     private string btcAmt = "0";
-    private string? queryParam;
     private string isPaid = "false"; //Can be True, false or expired
     private InvoiceDescriptionInfo? invoiceDesc;
+    private string r_hash_param = string.Empty;
+    private string redirectUrl_param = string.Empty;
 
 
     /// <summary>
@@ -127,11 +129,11 @@ else
         {
             try
             {
-                queryParam = ReadParamFromUrl();
+                ReadParamsFromUrl();
 
-                if (queryParam != null)
+                if (r_hash_param != null)
                 {
-                    invoice = await GetInvoiceInfo(queryParam, null);
+                    invoice = await GetInvoiceInfo(r_hash_param, null);
                     if (invoice != null)
                     {
                         invoiceDesc = GetDescriptionInfo(invoice.memo);
@@ -147,7 +149,7 @@ else
 
                         StateHasChanged();
 
-                        CheckIfPaid();
+                        await CheckIfPaid();
                     }
                     else
                         throw new ArgumentException("Bad param (r_hash)");
@@ -163,29 +165,51 @@ else
     }
 
 
+    /// <summary>
+    /// Redirect to source page
+    /// </summary>
+    private void RedirectToSource(bool Paid)
+    {
+        Thread.Sleep(6000);
+        if (redirectUrl_param != string.Empty)
+        {
+            var str = invoice?.memo == null ? "" : invoice.memo + (Paid ? "PAID" : "KO");
+            var encrypted = decryptService.TripleDESEncrypt(str);
+             navManager.NavigateTo(redirectUrl_param + "?param=" + 
+                 System.Uri.EscapeDataString(encrypted), forceLoad: true);
+        }
+       
+
+    }
+
     // <summary>
     /// Read param from encoded URL
     /// </summary>
     /// <returns></returns>
-    private string? ReadParamFromUrl()
+    private void ReadParamsFromUrl()
     {
         var uri = UriHelper.ToAbsoluteUri(UriHelper.Uri);
-        var paramQuery = string.Empty;
 
         if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("r_hash_str", out var param))
         {
-            return param.First();
+            var paramEncrypt = param.First();
+            r_hash_param = decryptService.TripleDESDecrypt(System.Uri.UnescapeDataString(paramEncrypt));
         }
-        else
-            return null;
+
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("redirect", out var param2))
+        {
+            var param2Encrypt = param2.First();
+            redirectUrl_param = decryptService.TripleDESDecrypt(System.Uri.UnescapeDataString(param2Encrypt));
+        }
+
     }
 
     /// <summary>
-    /// Check if paid and change
+    /// Check if paid and change (bool return to see if it finished)
     /// </summary>
-    private async void CheckIfPaid()
+    private async Task CheckIfPaid()
     {
-        if (invoice != null && invoice.r_hash != null && queryParam != null && invoice.expiry != null)
+        if (invoice != null && invoice.r_hash != null && invoice.expiry != null)
         {
             DateTime expiryTime = DateTime.UtcNow.AddSeconds(double.Parse(invoice.expiry)).AddSeconds(-30);
 
@@ -194,10 +218,18 @@ else
             while (expiryTime - DateTime.UtcNow > TimeSpan.FromSeconds(0))
             {
                 Thread.Sleep(2000);
-                var invoiceLookup = await GetInvoiceInfo(null, invoice.r_hash);
-                if (invoiceLookup.settled)
+                try
                 {
-                    isPaid = "true";
+                    var invoiceLookup = await GetInvoiceInfo(null, invoice.r_hash);
+                    if (invoiceLookup.settled)
+                    {
+                        isPaid = "true";
+                        break;
+                    }
+                }
+                catch
+                {
+                    isPaid = "false";
                     break;
                 }
             }
@@ -207,6 +239,8 @@ else
                 isPaid = "expired";
             }
             StateHasChanged();
+
+            RedirectToSource(isPaid == "true" ? true:false);
         }
     }
 
@@ -311,3 +345,4 @@ else
     /// </summary>
     private record InvoiceDescriptionInfo(string Amount, string Currency, string ShopName);
     }
+

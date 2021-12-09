@@ -1,3 +1,4 @@
+using lnd_invoice.Blazor;
 using lnd_invoice.Blazor.UIService;
 using lnd_invoice.Service;
 using Microsoft.AspNetCore.Components;
@@ -16,7 +17,10 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
 //Config
-string apiUrl = builder.Configuration.GetSection("ApiConnectionSettings:LndInvoiceApiAdress").Get<string>();
+var config = builder.Configuration.GetSection("ApiConnectionSettings").Get<ApiConnectionSettings>();
+string apiUrl = config.LndInvoiceApiAdress;
+
+builder.Services.AddSingleton<ApiConnectionSettings>(config);
 
 //Lnd invoice api
 builder.Services.AddHttpClient("invoice_api", c =>
@@ -28,11 +32,17 @@ builder.Services.AddHttpClient("invoice_api", c =>
 
     c.Timeout = TimeSpan.FromMinutes(3);
 
-});
+}).ConfigurePrimaryHttpMessageHandler(() =>
+                new HttpClientHandler
+                {
+                    //Insecure
+                    ServerCertificateCustomValidationCallback =
+                        (HttpRequestMessage requestMessage, X509Certificate2 certificate, X509Chain chain, SslPolicyErrors sslErrors) => true
+                });
 
 //Services
 builder.Services.AddScoped<CopyToClipBoardService>();
-//builder.Services.AddScoped<QueryParamService>();
+builder.Services.AddScoped<DecryptService>();
 
 var app = builder.Build();
 
