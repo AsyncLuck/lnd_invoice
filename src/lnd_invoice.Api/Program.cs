@@ -45,9 +45,12 @@ app.MapPost("/invoices", async (InvoiceRequest invoice, LndService lndService, C
 
     //Generate LND invoice
     var descriptionLnd = invoice.ShopName + ":" + invoice.Description + ":" + invoice.InvoiceIdentifier + ":" + invoice.Currency + ":" + invoice.Amount;
+
     //PROD
-    var invoiceLnd = await lndService.CreateInvoice(descriptionLnd, "10", invoice.ExpiryInSec.ToString());
-    //var invoiceLnd = await lndService.CreateInvoice(descriptionLnd, priceInBitcoin.PriceInSats.ToString(), invoice.ExpiryInSec.ToString());
+    var invoiceLnd = await lndService.CreateInvoice(descriptionLnd, priceInBitcoin.PriceInSats.ToString(), invoice.ExpiryInSec.ToString());
+
+    //TEST amount (10 sats)
+    //var invoiceLnd = await lndService.CreateInvoice(descriptionLnd, "10", invoice.ExpiryInSec.ToString());
 
     //TEST without access to LND node
     //var invoiceLnd = new InvoiceResponse() { add_index = "test", expiry = "360", payment_addr = new byte[50], payment_request = "xxx", r_hash = new byte[50]};
