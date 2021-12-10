@@ -220,7 +220,7 @@ class LndPresta extends PaymentModule
         $data = array(
             'shopName' => $shop_name,
             'currency' => $currency_iso,
-            'amount' => $total,
+            'amount' => number_format((float)$total, 2, '.', ''),
             'description' => $shop_name . ' invoice',
             'invoiceIdentifier' => strval($cart->id),
             'expiryInSec' => (int)Configuration::get('lnd_invoice_EXPIRY')

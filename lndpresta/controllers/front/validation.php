@@ -54,14 +54,16 @@ class LndPrestaValidationModuleFrontController extends ModuleFrontController
 
          $customer = new Customer($cart->id_customer);
         if (!Validate::isLoadedObject($customer))
-             Tools::redirect('index.php?controller=order&step=1');
-
-         $currency = $this->context->currency;
+            Tools::redirect('index.php?controller=order&step=1');
+        
          $total = (float)$cart->getOrderTotal(true, Cart::BOTH);
-
+         $currency_id = $cart->id_currency;
+         $cur = Currency::getCurrencyInstance($currency_id);
+         $currency_iso = $cur->iso_code;
+        
          $queries = array();
          parse_str($_SERVER['QUERY_STRING'], $queries);
-         
+        
          if(isset($queries) && isset($queries['param']))
          {
             $param = $queries['param'];
@@ -69,7 +71,7 @@ class LndPrestaValidationModuleFrontController extends ModuleFrontController
 
             $shop_name = Configuration::get('PS_SHOP_NAME');
 
-            $check = $shop_name . ':' . $shop_name . ' invoice:' . $this->context->cart->id .':' . $currency->iso_code.':' . number_format((float)$total, 2, '.', '') . 'PAID';
+            $check = $shop_name . ':' . $shop_name . ' invoice:' . $this->context->cart->id .':' . $currency_iso .':' . number_format((float)$total, 2, '.', '') . 'PAID';
 
             if($decrypted == $check)
             {
@@ -87,7 +89,6 @@ class LndPrestaValidationModuleFrontController extends ModuleFrontController
     
     public function decrypt($string, $secret)
     {
-        echo('nocrypt');
         //Generate a key from a hash
         $key = md5($secret, true);
 

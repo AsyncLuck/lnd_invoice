@@ -63,7 +63,7 @@
                         <p class="mt-1 text-center">Sats: @satsAmt - BTC: @btcAmt </p>
                         <p class="mt-2">Payment request:</p>
                         <p class=" fst-italic fw-light font-mini bg-light">@invoice.payment_request</p>
-                        <p class="card-text fst-italic fw-light fw-bold mt-4 text-danger">You will be redirect on your favorite shop very soon... pls wait..</p>
+                        <p class="card-text fst-italic fw-light fw-bold mt-4 text-danger">Validation, pls wait, you will be redirected...</p>
                     </div>
 
                 }
@@ -172,7 +172,7 @@ else
     /// </summary>
     private void RedirectToSource(bool Paid)
     {
-        Thread.Sleep(6000);
+        Thread.Sleep(3000);
         if (redirectUrl_param != string.Empty)
         {
             var str = invoice?.memo == null ? "" : invoice.memo + (Paid ? "PAID" : "KO");
