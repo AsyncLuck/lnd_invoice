@@ -172,7 +172,6 @@ else
     /// </summary>
     private void RedirectToSource(bool Paid)
     {
-        Thread.Sleep(3000);
         if (redirectUrl_param != string.Empty)
         {
             var str = invoice?.memo == null ? "" : invoice.memo + (Paid ? "PAID" : "KO");
