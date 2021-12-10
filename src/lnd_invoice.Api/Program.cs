@@ -32,7 +32,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 
 app.MapPost("/invoices", async (InvoiceRequest invoice, LndService lndService, CoingeckoRatesService rateService) =>
