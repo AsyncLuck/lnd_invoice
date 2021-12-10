@@ -23,7 +23,8 @@ Outside of the Visual Studio solution:
 
 * Do not use if you don't know what you are doing.
 * Don't expose the minimal .net 6 API, use it on your Prestashop (server / VPS) without any access from outside.
-* The Blazor frontend needs to be installed on the same server + proxy redirection via nginx or Apache.
+* The Blazor frontend needs to be installed on the same server (prestashop) + proxy redirection via nginx or Apache.
+* Your LND node can be anywhere ;)
 * Blazor server-side don't like POST request => some token to communicate with Prestashop are sent via QueryString (tripleDES).
 
 ## Config
