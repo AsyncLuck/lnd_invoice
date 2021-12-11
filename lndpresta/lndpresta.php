@@ -187,8 +187,8 @@ class LndPresta extends PaymentModule
         $externalOption = new \PrestaShop\PrestaShop\Core\Payment\PaymentOption();
         $externalOption->setCallToActionText($this->l('Pay with Lightning Network'))
                        ->setAction($this->context->link->getModuleLink($this->name, 'payment', array(), true))
-                       ->setLogo(Media::getMediaPath(_PS_MODULE_DIR_.$this->name.'/payment.jpg'));
-                       //  ->setAdditionalInformation($this->context->smarty->fetch('module:lndpresta/views/templates/front/payment_infos.tpl'))
+                       ->setLogo(Media::getMediaPath(_PS_MODULE_DIR_.$this->name.'/payment.jpg'))
+                       ->setAdditionalInformation($this->context->smarty->fetch('module:lndpresta/views/templates/front/payment_infos.tpl'));
                         
         return $externalOption;
     }
