@@ -33,6 +33,7 @@ Outside of the Visual Studio solution:
 
 * Expose your LND REST API on Tor Hidden Service (see Raspibolt github maybe)
 * Extract your LND invoice macaroon
+* Install Tor on your shop server/VPS and check the port (9050)
 
 Macroon extraction:
 ```xxd -ps -u -c 1000 /path-to-lnd/data/chain/bitcoin/mainnet/invoice.macaroon```
